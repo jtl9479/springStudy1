@@ -388,7 +388,13 @@ autowired 어노테이션 아래 qualifier어노테이션을 선언하며 할당
 
 ## 6.3 DAO 클래스 작성
     DAO 클래스는 데이터베이스 연동을 담당하는 클래스이다.
-        
+
+    디비 드라이버는 pom.xml에서 dependencies를 추가한다.
+
+    dao클래스에는 repository어노테이션을 추가한다. component를 사용해도 문제는 없다.
+
+    
+    
 
 
 
