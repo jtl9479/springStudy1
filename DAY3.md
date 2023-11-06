@@ -115,3 +115,116 @@ MVC 프레임워크 클래스 역활
 5. dispathcerServlet은 viewResolver를 통해 접두사와 접미사가 붙은 jsp파일의 이름과 경로를 리턴받는다
 6. 최종적으로 jsp실행 후 브라우저에 응답한다.
 
+# 5 Spring MVC 구조
+
+## 5.1 Spring MVC 수행 흐름
+
+![Alt text](img/../day3_img/image-33.png)
+
+1. 클라이언트로부터의 모든 ".do" 요청을 DispatcherServlet이 받는다.
+2. DispatcherServlet은 HandlerMapping을 통해 요청을 처리할 Controller를 검색한다.
+3. DispatcherServlet은 검색된 Controller를 실행하여 클라이언트의 요청을 처리한다.
+4. Controller는 비지니스 로직으 수행 결과로 얻어낸 Model 정보와 Model을 보여줄 View 정보를 ModelAndView객체에 저장하여 리턴한다.
+5. DispatcherServlet은 ModelAndView로부터 View정보를 추출하고, ViewResolver를 이용하여 응답으로 사용할 View를 얻어낸다.
+6. DispatcherServlet은 ViewResolver를 통해 찾아낸 View를 실행하여 응답을 전송한다.
+
+## 5.2 DispatcherServlet등록 및 스프링 컨테이너 구동
+
+### 5.2.1 DispatcherServlet등록
+
+    spring mvc에서 가장 중요한 요소가 모든 클라이언트의 요청을 가장 먼저 받아들이는 DispathcerServlet이다.
+
+    따라서 Spring MVC적용에서 가장 먼저 해야할 일은 WEB-INF/web.xml 파일에 등록된 DispatcherServlet 클래스를 스프링 프레임워크에서 제공하는 DispathcerServlet으로 변경하는 것이다.
+
+web.xml 설정
+```xml
+	<servlet>
+		<servlet-name>appServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>appServlet</servlet-name>
+		<url-pattern>*.do</url-pattern>
+	</servlet-mapping>    
+```
+
+    서블릿 컨테이너는 클라이언트의 ".do"의 요청이 있어야 DispatcherServlet 객체를 생성한다.
+    클라이언트가 ".do" 요청을 서버에 전달하면 서블릿 컨테이너는 web.xml파일에 appServlet이라는 이름으로 등록된 DispatcherServlet클래스의 객체를 생성한다.
+
+
+### 5.2.2 스프링 컨테이너 구동
+
+    클라이언트의 요청으로 DispatcherServlet객체가 생성되고 나면 DispathcerServlet클래스에 재정의된 init()메소드가 자동으로 실행되어 XmlWebApplicationContext라는 스프링컨테이너가 구동된다. 
+
+    Spring mvc의 구성 요소 중에서 DispacherServlet클래스가 유일한 서블릿이다. 따라서 서블릿 컨테이너는 web.xml 파일에 등록된 DispacherServlet만 생성해준다. 
+    하지만 DispacherServlet객체 혼자서는 클라이언트의 요청을 처리할 수 없고, 반드시 HandlerMapping, Controller, ViewResolver객체들과 상호작용해야 한다.
+    이 객체들을 메모리에 생성하기 위해서 DispacherServlet은 스프링컨테이너를 구동하는 것이다.
+
+    결국 DispacherServlet은 클라이언트의 요청처리에 필요한 HandlerMapping, Controller, ViewResolver객체들을 생성하기 위해 스프링 컨테이너를 구동한다.
+
+스프링컨테이너 구동과정
+![Alt text](day3_img/image-34.png)
+
+    서블릿 컨테이너가 DispacherServlet객체를 생성하고 나면 재정의한 init() 메소드가 자동으로 실행된다.
+
+    init()메소드는 스프링 설정파일을 로딩하여 XmlWebApplictionContext를 생성한다.
+    즉 DispacherServlet이 사용할 HandlerMapping, Controller, ViewResolver클래스를 <bean>등록하면 스프링 컨테이너가 해당 객체들을 생성해준다.
+
+## 5.3 스프링 설정 파일 변경
+
+    DispacherServlet은 자신이 사용할 객체들을 생성하기 위해서 스프링 컨테이너를 구동한다.
+    이때 스프링 컨테이너를 위한 설정 파일의 이름과 위치는 서블릿 이름을 기준으로 자동으로 결정된다.
+    하지만 필요에 따라서는 설정 파일의 이름을 바꾸거나 위치를 변경할 수도 있다.
+    이때 서블릿 초기화 파라미터를 이용하면 된다.
+
+서블릿 초기화 파라미터
+```xml
+	<servlet>
+		<servlet-name>appServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param><!--서블릿 초기화 파라미터-->
+			<param-name>contextConfigLocation</param-name>
+			<param-value>/WEB-INF/spring/appServlet/servlet-context.xml</param-value>
+		</init-param>
+	</servlet>
+```
+
+    DispacherServlet클래스를 등록한 곳에 <init-param>설정을 추가한다. 이떄, <param-name>엘리먼트로 지정한 contextConfigLocation은 대소문자를 구분하므로 정확하게 등록해야 한다.
+
+## 5.4 인코딩 설정
+
+    스프링이서는 인코딩 처리를 위해 CharacterEncodingFilter클래스를 제공하며 web.xml 파일에 CharacterEncodingFilter를 등록하면 모든 클라이언트의 요총에 대해서 일괄적으로 인코딩을 처리할 수 있다.
+
+ ```xml
+ 	<filter> 
+	    <filter-name>encodingFilter</filter-name> 
+	    <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class> 
+	    <init-param> 
+	       <param-name>encoding</param-name> 
+	       <param-value>UTF-8</param-value> 
+	    </init-param> 
+	    <init-param> 
+	       <param-name>forceEncoding</param-name> 
+	       <param-value>true</param-value> 
+	    </init-param> 
+	 </filter> 
+	 <filter-mapping> 
+	    <filter-name>encodingFilter</filter-name> 
+	    <url-pattern>/do</url-pattern> 
+	 </filter-mapping>
+ ```        
+
+# 6-7 spring mvc 적용
+
+## 6.1 Spring MVC 적용준비
+
+    
+
+
+
+
+
+### DispatcherServlet이란
+
+HTTP 프로토콜로 들어오는 모든 요청을 가장 먼저 받아 적합한 컨트롤러에 위임해주는 프론트 컨트롤러
